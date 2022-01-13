@@ -1,2 +1,15 @@
 # getmod
 Tool for translating old style Alamut Visual http GET requests for Alamut Visual Plus
+
+Ui made using PySide6 and translation of requests using flask.
+
+Packed into a one-file executable using nuitka 0.6.19.1, found under release.
+
+```console
+(venv)> python -m nuitka --onefile --enable-plugin=pyside6 --windows-disable-console --windows-icon-from-ico=icons\life-buoy.ico getmod.py
+```
+
+### Comments
+Exe size is somewhat bloated (26 Mb) due to the use of PySide6.
+
+Had problems using http.server available in the standard Python library, hence the use of flask. 
