@@ -1,7 +1,7 @@
 # getmod
 Tool for translating old style Alamut Visual http GET requests for Alamut Visual Plus
 
-![Screenshot](docs/imgs/trayapp.png)
+![Screenshot](https://github.com/gmc-norr/getmod/docs/imgs/trayapp.png)
 
 The tool sits in the windows tray and is accessed using a right click.
 
