@@ -3,7 +3,7 @@ Tool for translating old style Alamut Visual http GET requests for Alamut Visual
 
 Ui made using PySide6 and translation of requests using flask.
 
-Packed into a one-file executable using nuitka 0.6.19.1, found under release.
+Packed into a one-file executable using nuitka 0.6.19.1, found under releases.
 
 ```console
 (venv)> python -m nuitka --onefile --enable-plugin=pyside6 --windows-disable-console --windows-icon-from-ico=icons\life-buoy.ico getmod.py
