@@ -1,0 +1,7 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+<qresource>
+    <file>icons/feather/life-buoy.svg</file>
+    <file>icons/window-minimize.png</file>
+</qresource>
+</RCC>
