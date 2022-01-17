@@ -1,20 +1,16 @@
 import sys
-import flask
 from PySide6.QtCore import Qt, QTimer, QSettings, QThread, QRegularExpression
 from PySide6.QtGui import QIcon, QAction, QPixmap, QIntValidator, QRegularExpressionValidator
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu, \
     QLabel, QWidgetAction, QWidget, QHBoxLayout, QMessageBox, QFormLayout, QLineEdit, QPushButton
 
 import qdarktheme
+from modules.flask_thread import FlaskThread
+from modules.flask_factory import create_flask_app
 
-from modules.flaskapp import FlaskThread
-
-from flask import Flask, request
-import requests
 import resources
-from urllib import parse
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 class IconLabel(QWidget):
@@ -105,6 +101,7 @@ class LabelEdit(QWidget):
         self.edit.textChanged.connect(self.on_change)
 
     def get_validator(self):
+        print(self.key)
         if self.key == "institution":
             rx = QRegularExpression()
             rx.setPattern("[A-Z]{3}\\d{4}")
@@ -272,113 +269,113 @@ class SysTrayApp:
         apikey = self.settings.value('apikey')
         institution = self.settings.value('institution')
         listen_port = self.settings.value('listen_port')
-        relay_port = self.settings.value('relay_port')
+        target_port = self.settings.value('target_port')
 
-        flask_app = self.create_flask_app(apikey, institution, relay_port, self.status_desc)
+        flask_app = create_flask_app(apikey, institution, target_port, self.status_desc)
 
         self.thread = FlaskThread(flask_app, listen_port)
         self.thread.start()
         self.timer.singleShot(1000, self.check_flask_status)
 
-    @staticmethod
-    def create_flask_app(apikey, institution, relay_port, status_desc):
-
-        site_relay = "http://localhost:" + str(relay_port)
-
-        def args2str(args):
-            dlist = list()
-            for key, value in args.items():
-                _str = f"{key}={value}"
-                dlist.append(_str)
-
-            return "&".join(dlist)
-
-        flask_app = Flask(__name__)
-
-        # @flask_app.route('/', defaults={'path': ''})
-        @flask_app.route('/<path:path>', methods=['GET'])
-        def proxy(path):
-
-            def get_mod_path(request: flask.request, apikey, institution):
-                args = request.args.to_dict()
-                request_path = request.path
-                outdata = {}
-                outdata['apikey'] = apikey
-                outdata['institution'] = institution
-
-                for key in args:
-                    value = args[key]
-                    if key == "request":
-                        if value.startswith('BAM<'):
-                            new_key1 = "path"
-                            new_value1 = "file:///" + value.lstrip('BAM<')
-                            new_key2 = "filetype"
-                            new_value2 = "bam"
-
-                            outdata[new_key1] = new_value1.replace('\\', "/")
-                            outdata[new_key2] = new_value2
-                            request_path = "open"
-                        else:
-                            outdata[key] = value
-                            request_path = "search"
-
-                return request_path, args2str(outdata)
-
-            def error_response(e, site_relay, new_path):
-                return f"<html><head></head><body><h1>Communication error!</h1>" \
-                       f"<p>Exception msg:      {e}</p>" \
-                       f"<p>Target (host:port): {site_relay}</p>" \
-                       f"<p>Get request:        {new_path}</p>" \
-                       f"</body></html>"
-
-            if request.method == "GET" and request.path != "/favicon.ico":
-
-                req_path, argstr = get_mod_path(request, apikey, institution)
-
-                encoded_argstr = parse.quote(argstr, safe='&=')
-
-                encoded_request = f'{site_relay}/{req_path}?{encoded_argstr}'
-
-                print(encoded_request)
-                print(argstr)
-
-                try:
-                    ret = requests.get(encoded_request, timeout=10)
-
-                    status = int(ret.status_code)
-
-                    if status in range(200, 300):
-                        header = "Success!"
-                    else:
-                        header = "Problem!"
-
-                    return f"<html><head></head><body><h1>{header}</h1>" \
-                           f"<p>Target status code: {ret.status_code} {status_desc[status]}</p>" \
-                           f"<p>Target (host:port):   {site_relay}</p>" \
-                           f"<p>Get request:          {encoded_argstr}</p>" \
-                           "</body></html>"
-
-                except requests.exceptions.HTTPError as errh:
-                    e = "Http Error: " + str(errh)
-                    return error_response(e, site_relay, encoded_argstr)
-
-                except requests.exceptions.ConnectionError as errc:
-                    e = "Error Connecting: " + str(errc)
-                    return error_response(e, site_relay, encoded_argstr)
-
-                except requests.exceptions.Timeout as errt:
-                    e = "Error Connecting: " + str(errt)
-                    return error_response(e, site_relay, encoded_argstr)
-
-                except requests.exceptions.RequestException as err:
-                    e = "Error Connecting: " + str(err)
-                    return error_response(e, site_relay, encoded_argstr)
-
-            return f"<html><head></head><body><h1>Something's wrong!</h1>" \
-                   f"<p>No errors detected but no valid response from target either ... </p>" \
-                   f"</body></html>"
-
-        return flask_app
+    # @staticmethod
+    # def create_flask_app(apikey, institution, relay_port, status_desc):
+    #
+    #     site_relay = "http://localhost:" + str(relay_port)
+    #
+    #     def args2str(args):
+    #         dlist = list()
+    #         for key, value in args.items():
+    #             _str = f"{key}={value}"
+    #             dlist.append(_str)
+    #
+    #         return "&".join(dlist)
+    #
+    #     flask_app = Flask(__name__)
+    #
+    #     # @flask_app.route('/', defaults={'path': ''})
+    #     @flask_app.route('/<path:path>', methods=['GET'])
+    #     def proxy(path):
+    #
+    #         def get_mod_path(request: flask.request, apikey, institution):
+    #             args = request.args.to_dict()
+    #             request_path = request.path
+    #             outdata = {}
+    #             outdata['apikey'] = apikey
+    #             outdata['institution'] = institution
+    #
+    #             for key in args:
+    #                 value = args[key]
+    #                 if key == "request":
+    #                     if value.startswith('BAM<'):
+    #                         new_key1 = "path"
+    #                         new_value1 = "file:///" + value.lstrip('BAM<')
+    #                         new_key2 = "filetype"
+    #                         new_value2 = "bam"
+    #
+    #                         outdata[new_key1] = new_value1.replace('\\', "/")
+    #                         outdata[new_key2] = new_value2
+    #                         request_path = "open"
+    #                     else:
+    #                         outdata[key] = value
+    #                         request_path = "search"
+    #
+    #             return request_path, args2str(outdata)
+    #
+    #         def error_response(e, site_relay, new_path):
+    #             return f"<html><head></head><body><h1>Communication error!</h1>" \
+    #                    f"<p>Exception msg:      {e}</p>" \
+    #                    f"<p>Target (host:port): {site_relay}</p>" \
+    #                    f"<p>Get request:        {new_path}</p>" \
+    #                    f"</body></html>"
+    #
+    #         if request.method == "GET" and request.path != "/favicon.ico":
+    #
+    #             req_path, argstr = get_mod_path(request, apikey, institution)
+    #
+    #             encoded_argstr = parse.quote(argstr, safe='&=')
+    #
+    #             encoded_request = f'{site_relay}/{req_path}?{encoded_argstr}'
+    #
+    #             print(encoded_request)
+    #             print(argstr)
+    #
+    #             try:
+    #                 ret = requests.get(encoded_request, timeout=10)
+    #
+    #                 status = int(ret.status_code)
+    #
+    #                 if status in range(200, 300):
+    #                     header = "Success!"
+    #                 else:
+    #                     header = "Problem!"
+    #
+    #                 return f"<html><head></head><body><h1>{header}</h1>" \
+    #                        f"<p>Target status code: {ret.status_code} {status_desc[status]}</p>" \
+    #                        f"<p>Target (host:port):   {site_relay}</p>" \
+    #                        f"<p>Get request:          {encoded_argstr}</p>" \
+    #                        "</body></html>"
+    #
+    #             except requests.exceptions.HTTPError as errh:
+    #                 e = "Http Error: " + str(errh)
+    #                 return error_response(e, site_relay, encoded_argstr)
+    #
+    #             except requests.exceptions.ConnectionError as errc:
+    #                 e = "Error Connecting: " + str(errc)
+    #                 return error_response(e, site_relay, encoded_argstr)
+    #
+    #             except requests.exceptions.Timeout as errt:
+    #                 e = "Error Connecting: " + str(errt)
+    #                 return error_response(e, site_relay, encoded_argstr)
+    #
+    #             except requests.exceptions.RequestException as err:
+    #                 e = "Error Connecting: " + str(err)
+    #                 return error_response(e, site_relay, encoded_argstr)
+    #
+    #         return f"<html><head></head><body><h1>Something's wrong!</h1>" \
+    #                f"<p>No errors detected but no valid response from target either ... </p>" \
+    #                f"</body></html>"
+    #
+    #     return flask_app
 
 
 if __name__ == "__main__":

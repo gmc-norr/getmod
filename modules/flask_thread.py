@@ -8,5 +8,6 @@ class FlaskThread(QThread):
         self.listen_port = listen_port
 
     def run(self):
-        self.app.run(host='127.0.0.1', port=self.listen_port)
+        print(self.listen_port)
+        self.app.run(host='127.0.0.1', port=int(self.listen_port))
 
